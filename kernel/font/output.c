@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include "../limine.h"
 #include <stddef.h>
 #include "font.h"
@@ -17,6 +18,26 @@ static volatile struct limine_framebuffer_request framebuffer_request = {
 
 struct WriteInfo write_info;
 unsigned int fcolor = 0x009999ff, bcolor = 0x00000000;
+
+void set_fcolor(unsigned int color)
+{
+  fcolor = color;
+}
+
+void set_bcolor(unsigned int color)
+{
+  bcolor = color;
+}
+
+unsigned int get_fcolor()
+{
+  return fcolor;
+}
+
+unsigned int get_bcolor()
+{
+  return bcolor;
+}
 
 int output_init()
 {
@@ -42,32 +63,6 @@ int output_init()
   return 0;
 }
 
-void kprint_write_info()
-{
-  fcolor = 0x00ff0000;
-  kputs("帧缓冲调试信息：\n");
-  kputs("xr:");
-  kputuint(write_info.xr);
-  kputs("\nyr:");
-  kputuint(write_info.yr);
-  kputs("\nxp:");
-  kputuint(write_info.xp);
-  kputs("\nyp:");
-  kputuint(write_info.yp);
-  kputs("\nxs:");
-  kputuint(write_info.xs);
-  kputs("\nys:");
-  kputuint(write_info.ys);
-  kputs("\nd:");
-  kputuint(write_info.d);
-  kputs("\npitch:");
-  kputuint(write_info.pitch);
-  kputs("\nfb_addr:");
-  kputuhex(write_info.fb_addr);
-  kputs("\n");
-  fcolor = 0x009999ff;
-}
-
 void draw_pixel(int x, int y, unsigned int color)
 {
   *(write_info.fb_addr + x * (write_info.pitch / 4) + y) = color;
@@ -84,7 +79,6 @@ void kputchar(int c)
   {
     int x = write_info.xp * (write_info.xs * write_info.scale + write_info.d);
     int y = write_info.yp * (write_info.ys * write_info.scale + write_info.d);
-    uint32_t *start = write_info.fb_addr;
     int p = 0;
     for (int i = 0; i < 22235; ++i)
     {
@@ -129,13 +123,13 @@ void kputchar(int c)
     for (int i = 0; i < write_info.xr; ++i)
     {
       for (int j = 0; j < write_info.yr; ++j)
-        if (i >= write_info.xr - write_info.xs)
+        if (i >= write_info.xr - write_info.xs * write_info.scale)
         {
           draw_pixel(i, j, bcolor);
         }
         else
         {
-          draw_pixel(i, j, get_pixel(i + write_info.xs, j));
+          draw_pixel(i, j, get_pixel(i + write_info.xs * write_info.scale, j));
         }
     }
     while (write_info.xp * (write_info.xs * write_info.scale + write_info.d) >= write_info.xr)
@@ -174,7 +168,7 @@ void kputs(char *p)
     }
     else
     {
-      return -1; // Invalid UTF-8 sequence.
+      return; // Invalid UTF-8 sequence.
     }
 
     for (int i = 1; i < bytes; i++)
@@ -182,7 +176,55 @@ void kputs(char *p)
       p++;
       if ((*p & 0xC0) != 0x80)
       {
-        return -1; // Invalid UTF-8 sequence.
+        return; // Invalid UTF-8 sequence.
+      }
+      codepoint = (codepoint << 6) | (*p & 0x3F);
+    }
+
+    kputchar(codepoint);
+    p++;
+  }
+}
+
+void kputsn(char *s, int n)
+{
+  char *p = s;
+  while (*p && p - s + 1 <= n)
+  {
+    int codepoint = 0;
+    int bytes;
+
+    if ((*p & 0x80) == 0)
+    {
+      codepoint = *p;
+      bytes = 1;
+    }
+    else if ((*p & 0xE0) == 0xC0)
+    {
+      codepoint = *p & 0x1F;
+      bytes = 2;
+    }
+    else if ((*p & 0xF0) == 0xE0)
+    {
+      codepoint = *p & 0x0F;
+      bytes = 3;
+    }
+    else if ((*p & 0xF8) == 0xF0)
+    {
+      codepoint = *p & 0x07;
+      bytes = 4;
+    }
+    else
+    {
+      return; // Invalid UTF-8 sequence.
+    }
+
+    for (int i = 1; i < bytes; i++)
+    {
+      p++;
+      if ((*p & 0xC0) != 0x80)
+      {
+        return; // Invalid UTF-8 sequence.
       }
       codepoint = (codepoint << 6) | (*p & 0x3F);
     }
@@ -248,7 +290,7 @@ void kputuhex(unsigned int x)
 
 void kputint(int x)
 {
-  if (x > 0)
+  if (x >= 0)
     kputuint(x);
   else
   {
@@ -258,11 +300,58 @@ void kputint(int x)
 }
 void kputhex(int x)
 {
-  if (x > 0)
+  if (x >= 0)
     kputuhex(x);
   else
   {
     kputchar('-');
     kputuhex(-x);
   }
+}
+
+int strlen(char *s)
+{
+  int len = 0;
+  while (*(s + len) != '\0')
+  {
+    ++len;
+  }
+  return len;
+}
+void kprintf(char *format, ...)
+{
+  va_list ap;
+  va_start(ap, format);
+  char *st = format;
+  while (*format != '\0')
+  {
+    if (*format == '%')
+    {
+      kputsn(st, format - st);
+      st = format + 2;
+      switch (*(format + 1))
+      {
+      case 'd':
+        kputint(va_arg(ap, int));
+        break;
+      case 'u':
+        kputuint(va_arg(ap, unsigned int));
+        break;
+      case 'x':
+        kputuhex(va_arg(ap, unsigned int));
+        break;
+      default:
+        kputchar('?');
+        break;
+      }
+      ++format;
+    }
+    ++format;
+  }
+  va_end(ap);
+}
+
+void kprint_write_info()
+{
+  kprintf("帧缓冲调试信息：\nxr:%d\nyr:%d\nxp:%d\nyp:%d\nxs:%d\nys:%d\nd:%d\npitch:%d\nfb_addr:%x\n", write_info.xr, write_info.yr, write_info.xp, write_info.yp, write_info.xs, write_info.ys, write_info.d, write_info.pitch, write_info.fb_addr);
 }

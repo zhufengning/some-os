@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 // Halt and catch fire function.
-static void hcf(void)
+void hcf(void)
 {
   asm("cli");
   for (;;)
@@ -16,20 +16,8 @@ static void hcf(void)
 void _start(void)
 {
   output_init();
-  kputchar('a');
-  kputchar('b');
-  kputchar('c');
-  kputchar(12398);
-  kputs("\n你好世界\n");
-  kputuint(12345);
-  kputchar('\n');
-  kputuhex(12345);
-  kputchar('\n');
+  kputs("你好世界\n");
   kprint_write_info();
-  for (int i = 0; i < 100; ++i)
-  {
-    kputchar('a' + i % 26);
-  }
   // We're done, just hang...
   hcf();
 }
