@@ -15,7 +15,7 @@ static volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0};
 
 struct WriteInfo write_info;
-unsigned const int fcolor = 0x009999ff, bcolor = 0x00000000;
+unsigned int fcolor = 0x009999ff, bcolor = 0x00000000;
 
 int output_init()
 {
@@ -39,14 +39,43 @@ int output_init()
   write_info.pitch = framebuffer->pitch;
   return 0;
 }
+
+void print_write_info()
+{
+  fcolor = 0x00ff0000;
+  puts("Framebuffer debug info:\n");
+  fcolor = 0x009999ff;
+  puts("xr:");
+  putint(write_info.xr);
+  puts("\nyr:");
+  putint(write_info.yr);
+  puts("\nxp:");
+  putint(write_info.xp);
+  puts("\nyp:");
+  putint(write_info.yp);
+  puts("\nxs:");
+  putint(write_info.xs);
+  puts("\nys:");
+  putint(write_info.ys);
+  puts("\nd:");
+  putint(write_info.d);
+  puts("\npitch:");
+  putint(write_info.pitch);
+  puts("\nfb_addr:");
+  puthex(write_info.fb_addr);
+  puts("\n");
+}
+
 void draw_pixel(int x, int y, unsigned int color)
 {
   *(write_info.fb_addr + x * (write_info.pitch / 4) + y) = color;
 }
+
 unsigned int get_pixel(int x, int y)
 {
   return *(write_info.fb_addr + x * (write_info.pitch / 4) + y);
 }
+
 void putchar(int c)
 {
   if (c != '\n')
@@ -158,5 +187,59 @@ void puts(char *p)
 
     putchar(codepoint);
     p++;
+  }
+}
+
+void putint(unsigned int x)
+{
+  char s[10] = {0};
+  int len = 0;
+  while (x)
+  {
+    s[len] = '0' + x % 10;
+    len += 1;
+    x /= 10;
+  }
+  if (len == 0)
+  {
+    putchar('0');
+  }
+  else
+  {
+    for (int i = len - 1; i >= 0; --i)
+    {
+      putchar(s[i]);
+    }
+  }
+}
+
+void puthex(unsigned int x)
+{
+  uint8_t s[10] = {0};
+  int len = 0;
+  while (x)
+  {
+    s[len] = x % 16;
+    len += 1;
+    x /= 16;
+  }
+  puts("0x");
+  if (len == 0)
+  {
+    putchar('0');
+  }
+  else
+  {
+    for (int i = len - 1; i >= 0; --i)
+    {
+      if (s[i] <= 9)
+      {
+        putchar('0' + s[i]);
+      }
+      else
+      {
+        putchar('a' + s[i] - 10);
+      }
+    }
   }
 }
