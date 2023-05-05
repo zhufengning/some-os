@@ -15,19 +15,21 @@ static void hcf(void)
 
 void _start(void)
 {
-  // Ensure we got a framebuffer.
-
   output_init();
-  putchar('a');
-  putchar('b');
-  putchar('c');
-  putchar(12398);
-  puts("\n你好世界\n");
-  putint(12345);
-  putchar('\n');
-  puthex(12345);
-  putchar('\n');
-  print_write_info();
+  kputchar('a');
+  kputchar('b');
+  kputchar('c');
+  kputchar(12398);
+  kputs("\n你好世界\n");
+  kputuint(12345);
+  kputchar('\n');
+  kputuhex(12345);
+  kputchar('\n');
+  kprint_write_info();
+  for (int i = 0; i < 100; ++i)
+  {
+    kputchar('a' + i % 26);
+  }
   // We're done, just hang...
   hcf();
 }

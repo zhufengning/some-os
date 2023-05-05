@@ -1,6 +1,8 @@
-void putchar(int c);
+void kputchar(int c);
 int output_init();
-void puts(char *p);
-void putint(int x);
-void puthex(int x);
-void print_write_info();
+void kputs(char *p);
+void kputuint(int x);
+void kputuhex(int x);
+void kputint(int x);
+void kputhex(int x);
+void kprint_write_info();

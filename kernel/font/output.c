@@ -9,6 +9,7 @@ struct WriteInfo
   int d;      // 间隔
   uint32_t *fb_addr;
   int pitch;
+  int scale;
   // unsigned long fb_length;
 };
 static volatile struct limine_framebuffer_request framebuffer_request = {
@@ -37,33 +38,34 @@ int output_init()
   write_info.d = 0;
   write_info.fb_addr = framebuffer->address;
   write_info.pitch = framebuffer->pitch;
+  write_info.scale = 2;
   return 0;
 }
 
-void print_write_info()
+void kprint_write_info()
 {
   fcolor = 0x00ff0000;
-  puts("Framebuffer debug info:\n");
+  kputs("帧缓冲调试信息：\n");
+  kputs("xr:");
+  kputuint(write_info.xr);
+  kputs("\nyr:");
+  kputuint(write_info.yr);
+  kputs("\nxp:");
+  kputuint(write_info.xp);
+  kputs("\nyp:");
+  kputuint(write_info.yp);
+  kputs("\nxs:");
+  kputuint(write_info.xs);
+  kputs("\nys:");
+  kputuint(write_info.ys);
+  kputs("\nd:");
+  kputuint(write_info.d);
+  kputs("\npitch:");
+  kputuint(write_info.pitch);
+  kputs("\nfb_addr:");
+  kputuhex(write_info.fb_addr);
+  kputs("\n");
   fcolor = 0x009999ff;
-  puts("xr:");
-  putint(write_info.xr);
-  puts("\nyr:");
-  putint(write_info.yr);
-  puts("\nxp:");
-  putint(write_info.xp);
-  puts("\nyp:");
-  putint(write_info.yp);
-  puts("\nxs:");
-  putint(write_info.xs);
-  puts("\nys:");
-  putint(write_info.ys);
-  puts("\nd:");
-  putint(write_info.d);
-  puts("\npitch:");
-  putint(write_info.pitch);
-  puts("\nfb_addr:");
-  puthex(write_info.fb_addr);
-  puts("\n");
 }
 
 void draw_pixel(int x, int y, unsigned int color)
@@ -76,12 +78,12 @@ unsigned int get_pixel(int x, int y)
   return *(write_info.fb_addr + x * (write_info.pitch / 4) + y);
 }
 
-void putchar(int c)
+void kputchar(int c)
 {
   if (c != '\n')
   {
-    int x = write_info.xp * (write_info.xs + write_info.d);
-    int y = write_info.yp * (write_info.ys + write_info.d);
+    int x = write_info.xp * (write_info.xs * write_info.scale + write_info.d);
+    int y = write_info.yp * (write_info.ys * write_info.scale + write_info.d);
     uint32_t *start = write_info.fb_addr;
     int p = 0;
     for (int i = 0; i < 22235; ++i)
@@ -93,11 +95,11 @@ void putchar(int c)
     }
     int px = p / 18 * 16;
     int py = p % 18 * 27;
-    for (int i = 0; i <= write_info.xs; ++i)
+    for (int i = 0; i <= write_info.xs * write_info.scale; ++i)
     {
-      for (int j = 0; j <= write_info.ys; ++j)
+      for (int j = 0; j <= write_info.ys * write_info.scale; ++j)
       {
-        int bnewx = px + i, bnewy = py + j + 12;
+        int bnewx = (px + i / write_info.scale), bnewy = (py + j / write_info.scale + 12);
         int fnewx = x + i;
         int fnewy = y + j;
         if (FONT[bnewx * 486 + bnewy] == 1)
@@ -117,12 +119,12 @@ void putchar(int c)
     write_info.xp += 1;
     write_info.yp = 0;
   }
-  if (write_info.yp * (write_info.ys + write_info.d) >= write_info.yr)
+  if (write_info.yp * (write_info.ys * write_info.scale + write_info.d) >= write_info.yr)
   {
     write_info.yp = 0;
     write_info.xp += 1;
   }
-  if (write_info.xp * (write_info.xs + write_info.d) >= write_info.xr)
+  if (write_info.xp * (write_info.xs * write_info.scale + write_info.d) >= write_info.xr)
   {
     for (int i = 0; i < write_info.xr; ++i)
     {
@@ -136,14 +138,14 @@ void putchar(int c)
           draw_pixel(i, j, get_pixel(i + write_info.xs, j));
         }
     }
-    while (write_info.xp * (write_info.xs + write_info.d) >= write_info.xr)
+    while (write_info.xp * (write_info.xs * write_info.scale + write_info.d) >= write_info.xr)
     {
       write_info.xp -= 1;
     }
   }
 }
 
-void puts(char *p)
+void kputs(char *p)
 {
   while (*p)
   {
@@ -185,12 +187,12 @@ void puts(char *p)
       codepoint = (codepoint << 6) | (*p & 0x3F);
     }
 
-    putchar(codepoint);
+    kputchar(codepoint);
     p++;
   }
 }
 
-void putint(unsigned int x)
+void kputuint(unsigned int x)
 {
   char s[10] = {0};
   int len = 0;
@@ -202,18 +204,18 @@ void putint(unsigned int x)
   }
   if (len == 0)
   {
-    putchar('0');
+    kputchar('0');
   }
   else
   {
     for (int i = len - 1; i >= 0; --i)
     {
-      putchar(s[i]);
+      kputchar(s[i]);
     }
   }
 }
 
-void puthex(unsigned int x)
+void kputuhex(unsigned int x)
 {
   uint8_t s[10] = {0};
   int len = 0;
@@ -223,10 +225,10 @@ void puthex(unsigned int x)
     len += 1;
     x /= 16;
   }
-  puts("0x");
+  kputs("0x");
   if (len == 0)
   {
-    putchar('0');
+    kputchar('0');
   }
   else
   {
@@ -234,12 +236,33 @@ void puthex(unsigned int x)
     {
       if (s[i] <= 9)
       {
-        putchar('0' + s[i]);
+        kputchar('0' + s[i]);
       }
       else
       {
-        putchar('a' + s[i] - 10);
+        kputchar('a' + s[i] - 10);
       }
     }
+  }
+}
+
+void kputint(int x)
+{
+  if (x > 0)
+    kputuint(x);
+  else
+  {
+    kputchar('-');
+    kputuint(-x);
+  }
+}
+void kputhex(int x)
+{
+  if (x > 0)
+    kputuhex(x);
+  else
+  {
+    kputchar('-');
+    kputuhex(-x);
   }
 }
