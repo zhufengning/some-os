@@ -348,10 +348,20 @@ void kprintf(char *format, ...)
     }
     ++format;
   }
+  kputsn(st, format - st);
   va_end(ap);
 }
 
 void kprint_write_info()
 {
-  kprintf("帧缓冲调试信息：\nxr:%d\nyr:%d\nxp:%d\nyp:%d\nxs:%d\nys:%d\nd:%d\npitch:%d\nfb_addr:%x\n", write_info.xr, write_info.yr, write_info.xp, write_info.yp, write_info.xs, write_info.ys, write_info.d, write_info.pitch, write_info.fb_addr);
+  kprintf("帧缓冲调试信息：\nxr:%d\nyr:%d\nxp:%d\nyp:%d\nxs:%d\nys:%d\nd:%d\npitch:%d\nfb_addr:%x\n",
+          write_info.xr,
+          write_info.yr,
+          write_info.xp,
+          write_info.yp,
+          write_info.xs,
+          write_info.ys,
+          write_info.d,
+          write_info.pitch,
+          write_info.fb_addr);
 }

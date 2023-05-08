@@ -26,7 +26,7 @@ override DEFAULT_LD := ld
 $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 
 # User controllable C flags.
-override DEFAULT_CFLAGS := -g -O2 -pipe
+override DEFAULT_CFLAGS := -g -O0 -pipe
 $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
 
 # User controllable C preprocessor flags. We set none by default.
@@ -75,7 +75,8 @@ override LDFLAGS += \
     -static \
     -m elf_x86_64 \
     -z max-page-size=0x1000 \
-    -T linker.ld
+    -T linker.ld \
+    -z noexecstack
 
 # Check if the linker supports -no-pie and enable it if it does.
 ifeq ($(shell $(LD) --help 2>&1 | grep 'no-pie' >/dev/null 2>&1; echo $$?),0)
