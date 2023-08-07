@@ -5,6 +5,9 @@
 我把默认的limine bootloader的readme删啦  
 
 这里就简单记录一下历史吧  
+> `23-08-08 01:15   ist 4a337d883bc95c83416379b7fefdc570978ae171`  
+加载中断栈表（写了3个月，从Lynr OS抄了点gdt的东西发现人家根本没管tss。又从blog os那里翻译rust到c，太sb了我。）  
+现在输出ascii字符只输出一半宽度
 
 > `23-05-08 17:21    idt    a9c7a296407dbd20e755a181c3f0e1342bc89af2`
 
