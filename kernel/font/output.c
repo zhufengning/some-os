@@ -17,26 +17,26 @@ static volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0};
 
 struct WriteInfo write_info;
-unsigned int fcolor = 0x009999ff, bcolor = 0x00000000;
+unsigned int F_COLOR = 0x009999ff, B_COLOR = 0x00000000;
 
 void set_fcolor(unsigned int color)
 {
-  fcolor = color;
+  F_COLOR = color;
 }
 
 void set_bcolor(unsigned int color)
 {
-  bcolor = color;
+  B_COLOR = color;
 }
 
 unsigned int get_fcolor()
 {
-  return fcolor;
+  return F_COLOR;
 }
 
 unsigned int get_bcolor()
 {
-  return bcolor;
+  return B_COLOR;
 }
 
 int output_init()
@@ -77,8 +77,8 @@ void kputchar(int c)
 {
   if (c != '\n')
   {
-    int x = write_info.xp * (write_info.xs * write_info.scale + write_info.d);
-    int y = write_info.yp * (write_info.ys * write_info.scale + write_info.d);
+    int x = write_info.xp;
+    int y = write_info.yp;
     int p = 0;
     for (int i = 0; i < 22235; ++i)
     {
@@ -89,52 +89,54 @@ void kputchar(int c)
     }
     int px = p / 18 * 16;
     int py = p % 18 * 27;
+    int width = write_info.ys * write_info.scale;
+    if (c < 128) width /= 2;
     for (int i = 0; i <= write_info.xs * write_info.scale; ++i)
     {
-      for (int j = 0; j <= write_info.ys * write_info.scale; ++j)
+      for (int j = 0; j <= width; ++j)
       {
         int bnewx = (px + i / write_info.scale), bnewy = (py + j / write_info.scale + 12);
         int fnewx = x + i;
         int fnewy = y + j;
         if (FONT[bnewx * 486 + bnewy] == 1)
         {
-          draw_pixel(fnewx, fnewy, fcolor);
+          draw_pixel(fnewx, fnewy, F_COLOR);
         }
         else
         {
-          draw_pixel(fnewx, fnewy, bcolor);
+          draw_pixel(fnewx, fnewy, B_COLOR);
         }
       }
     }
-    write_info.yp += 1;
+    write_info.yp += width;
   }
   else
   {
-    write_info.xp += 1;
+    write_info.xp += write_info.xs*write_info.scale;
     write_info.yp = 0;
   }
-  if (write_info.yp * (write_info.ys * write_info.scale + write_info.d) >= write_info.yr)
+  if (write_info.yp >= write_info.yr)
   {
     write_info.yp = 0;
-    write_info.xp += 1;
+    write_info.xp += write_info.xs*write_info.scale;
   }
-  if (write_info.xp * (write_info.xs * write_info.scale + write_info.d) >= write_info.xr)
+  if (write_info.xp >= write_info.xr)
   {
     for (int i = 0; i < write_info.xr; ++i)
     {
       for (int j = 0; j < write_info.yr; ++j)
         if (i >= write_info.xr - write_info.xs * write_info.scale)
         {
-          draw_pixel(i, j, bcolor);
+          draw_pixel(i, j, B_COLOR);
         }
         else
         {
           draw_pixel(i, j, get_pixel(i + write_info.xs * write_info.scale, j));
         }
     }
-    while (write_info.xp * (write_info.xs * write_info.scale + write_info.d) >= write_info.xr)
+    while (write_info.xp >= write_info.xr)
     {
-      write_info.xp -= 1;
+      write_info.xp -= write_info.xs*write_info.scale;
     }
   }
 }
@@ -340,6 +342,10 @@ void kprintf(char *format, ...)
       case 'x':
         kputuhex(va_arg(ap, unsigned int));
         break;
+      case 's':
+        kputs(va_arg(ap, char*));
+        break;
+
       default:
         kputchar('?');
         break;
